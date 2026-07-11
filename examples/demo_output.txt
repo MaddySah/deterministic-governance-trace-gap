@@ -1,0 +1,105 @@
+
+==============================================================================
+PART A  -  STATIC CONFORMANCE   (a code change: docs vs. diff)
+==============================================================================
+
+  Coverage  c = |T| / |R| = 5/7 = 71%
+
+  Gaps  (G = R \ T), ranked by blast radius x criticality:
+
+      SEV  REQ       MODULE       BLAST  DECLARED BEHAVIOR
+       15  REQ-003   billing          3  "refresh account balance hourly"
+        0  REQ-007   util_format      0  "pad currency strings to 2 decimals"
+
+  Orphan implementations (O = impl \ claimed) -- code answering to no requirement:
+    - FN-legacy_export
+
+==============================================================================
+PART B  -  AGENT ORCHESTRATION   (the plan vs. what the agent did)
+==============================================================================
+
+  The agent says: "I completed the loan pre-screening."
+  The governor checks. Every verdict below is a set difference or a count.
+
+  CRITICAL GATE  (contract breaches -- binary, absolute)
+
+      SEV  CHECK              REF              BLAST  DETAIL
+  x    35  tool_scope         pull_credit          7  attempt 1 called out-of-scope tool(s): web.search
+  x    35  cost_budget        pull_credit          7  attempt 1 cost 0.9 exceeds budget 0.5
+  x    35  latency_budget     pull_credit          7  attempt 1 took 4200ms, budget 3000ms
+  x    35  unmet              AR-03                7  'pull the credit report only via the approved bureau tool' -- step 'pull_credit' ran, but breached its contract
+  x    24  delegation_scope   score                6  delegated to llm.freeform_scorer outside its permitted set (privilege escalation by proxy)
+  x    24  unmet              AR-04                6  'score via the approved rules engine' -- step 'score' ran, but breached its contract
+  x    20  skipped            adverse_action       4  planned step never executed (satisfies AR-05)
+  x    20  unmet              AR-05                4  'send an adverse-action notice on decline' -- step 'adverse_action' never completed successfully
+  ?     6  cannot_attest      AR-06                3  'explain the decision to the applicant' -- only a non-verifiable step ('explain_decision') covers it
+  ?     3  cannot_attest      log_decision         1  evidence has no establishable provenance, so it cannot substantiate its claim
+  ?     3  cannot_attest      AR-07                1  'log the decision with a request id' -- step 'log_decision' ran, but its evidence has no provenance
+  x     1  unplanned          scrape_socials       0  executed but absent from the plan; tools web.search
+
+  TRUST MODEL  (graded reading per consumer -- a count, not a probability)
+
+    applicant_comms    trust=  0%  DEGRADED
+          x AR-05 unmet
+          ? AR-06 cannot attest -> human
+    decision_log       trust= 30%  DEGRADED
+          x AR-04 unmet
+          ? AR-07 cannot attest -> human
+    compliance_audit   trust= 33%  DEGRADED
+          x AR-03 unmet
+          x AR-05 unmet
+
+==============================================================================
+THE AUDITABLE RISK RECORD
+==============================================================================
+
+{
+  "decision": "orchestration_run:run-8f31",
+  "verdict": "HALT",
+  "reasoning": "9 critical contract breach(es). Highest: tool_scope on pull_credit. One failed critical check is enough.",
+  "evidence_ids": [
+    "adverse_action",
+    "explain_decision",
+    "log_decision",
+    "log_decision#a1",
+    "pull_credit",
+    "pull_credit#a1",
+    "score",
+    "score#a1",
+    "scrape_socials"
+  ],
+  "policy_ids": [
+    "adverse_action",
+    "explain_decision",
+    "log_decision",
+    "pull_credit",
+    "score"
+  ],
+  "confidence": 0.42,
+  "risk": 1.0,
+  "suggested_remediation": [
+    "pull_credit: revoke the out-of-scope tool or widen the contract, then re-run",
+    "pull_credit: raise the budget deliberately, or fix the retry loop",
+    "pull_credit: raise the budget deliberately, or profile the step",
+    "AR-03: deliver the requirement, then re-run the gate"
+  ],
+  "trust": {
+    "applicant_comms": 0.0,
+    "decision_log": 0.3,
+    "compliance_audit": 0.33
+  },
+  "audit_hash": "sha256:2eea901c6f9912d8"
+}
+
+==============================================================================
+THE BOTTOM LINE
+==============================================================================
+
+  Deterministic governance for a probabilistic system.
+
+  The gate is binary and deterministic. The trust reading is graded and still
+  deterministic. A soft layer may cluster these findings and propose links, but
+  it never renders the verdict -- delete it and every line above is identical.
+
+  The soft layer explains. The arithmetic decides.
+==============================================================================
