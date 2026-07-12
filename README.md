@@ -20,8 +20,8 @@ GOVERNOR   ✓ correct employee
 ## Quickstart
 
 ```bash
-git clone https://github.com/MaddySah/trace-gap.git
-cd trace-gap
+git clone https://github.com/MaddySah/deterministic-governance-trace-gap.git
+cd deterministic-governance-trace-gap
 python -m src.demo        # standard library only. No install, no keys, no network.
 ```
 
