@@ -1,4 +1,4 @@
-# trace-gap
+# deterministic-governance-trace-gap
 
 **Deterministic governance for probabilistic systems.**
 
